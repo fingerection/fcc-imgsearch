@@ -1,33 +1,41 @@
-'use strict';
-
 var express = require('express');
-var routes = require('./app/routes/index.js');
-var mongoose = require('mongoose');
-var passport = require('passport');
-var session = require('express-session');
-
 var app = express();
-require('dotenv').load();
-require('./app/config/passport')(passport);
+var request = require('request');
 
-mongoose.connect(process.env.MONGO_URI);
 
-app.use('/controllers', express.static(process.cwd() + '/app/controllers'));
-app.use('/public', express.static(process.cwd() + '/public'));
-app.use('/common', express.static(process.cwd() + '/app/common'));
-
-app.use(session({
-	secret: 'secretClementine',
-	resave: false,
-	saveUninitialized: true
-}));
-
-app.use(passport.initialize());
-app.use(passport.session());
-
-routes(app, passport);
+app.get('/api/imagesearch/:keyword', function (req, res) {
+	var keyword = req.params.keyword;
+	var offset = req.query.offset || 0;
+	
+	var options = {
+	  url: 'https://bingapis.azure-api.net/api/v5/images/search?q=' + keyword + '&count=10&offset=' + offset + '&mkt=en-us&safeSearch=Moderate',
+	  headers: {
+	    'Ocp-Apim-Subscription-Key': '15dffee3458d4e68b70261866eed7481'
+	  },
+	  json:true
+	};
+	
+	request(options, function (error, response, body) {
+	  if (!error && response.statusCode == 200) {
+	  	var resultArray = [];
+	  	for(var i=0; i<body.value.length; i++) {
+	  		var item = body.value[i];
+	  		var result = {
+	  			"url": item.contentUrl,
+		  		"snippet": item.name,
+		  		"thumbnail": item.thumbnailUrl,
+		  		"context": item.hostPageDisplayUrl};
+			resultArray.push(result);
+	  	}
+	  	
+	  	res.send(JSON.stringify(resultArray));
+	    //console.log(body) // Show the HTML for the Google homepage.
+	  }
+	})
+	
+});
 
 var port = process.env.PORT || 8080;
 app.listen(port,  function () {
-	console.log('Node.js listening on port ' + port + '...');
+  console.log('Example app listening on port'+port);
 });
