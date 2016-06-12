@@ -2,6 +2,14 @@ var express = require('express');
 var app = express();
 var request = require('request');
 
+var lastest = [];
+
+function addToLatest(keyword) {
+	lastest.push(keyword);
+	if(lastest.length > 10) {
+		latest = latest.slice(1);
+	}
+}
 
 app.get('/api/imagesearch/:keyword', function (req, res) {
 	var keyword = req.params.keyword;
@@ -27,12 +35,21 @@ app.get('/api/imagesearch/:keyword', function (req, res) {
 		  		"context": item.hostPageDisplayUrl};
 			resultArray.push(result);
 	  	}
-	  	
+	  	var now = new Date();
+	  	var history = {
+	  		term: keyword,
+	  		when: now.toISOString()
+	  	};
+	  	addToLatest(history);
 	  	res.send(JSON.stringify(resultArray));
 	    //console.log(body) // Show the HTML for the Google homepage.
 	  }
 	})
 	
+});
+
+app.get('/api/latest/imagesearch/', function (req, res) {
+	res.send(lastest.reverse());
 });
 
 var port = process.env.PORT || 8080;
